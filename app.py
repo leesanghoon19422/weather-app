@@ -142,14 +142,32 @@ st.markdown(f'<div class="app-title">{L["app_name"]}</div>', unsafe_allow_html=T
 
 # 검색 섹션
 c_search1, c_search2 = st.columns([1, 2])
-with c_search1: loc_data = get_geolocation(component_key="gleam_v8")
+with c_search1: 
+    loc_data = get_geolocation(component_key="gleam_v12")
+
 with c_search2:
-    countries = ["대한민국", "일본", "미국", "직접 입력"] if sel_lang == "한국어" else ["South Korea", "Japan", "USA", "Direct Input"]
+    if sel_lang == "한국어":
+        countries = ["현재 위치", "대한민국", "일본", "미국", "직접 입력"]
+    else:
+        countries = ["Current Location", "South Korea", "Japan", "USA", "Direct Input"]
+        
     choice = st.selectbox(L["loc_label"], countries, label_visibility="collapsed")
     mapping = {"대한민국": "Seoul", "South Korea": "Seoul", "일본": "Tokyo", "Japan": "Tokyo", "미국": "New York", "USA": "New York"}
-    q_val = st.text_input("City", "Seoul", label_visibility="collapsed") if "입력" in choice or "Input" in choice else mapping.get(choice, "Seoul")
 
-q = f"{loc_data['coords']['latitude']},{loc_data['coords']['longitude']}" if loc_data else q_val
+    # --- 들여쓰기 오류 방지 구간 ---
+    q = None 
+
+    if "입력" in choice or "Input" in choice:
+        user_input = st.text_input("도시 이름을 영어로 입력 후 엔터", "Seoul", key="user_city")
+        q = user_input
+    elif "현재" in choice or "Current" in choice:
+        if loc_data:
+            q = f"{loc_data['coords']['latitude']},{loc_data['coords']['longitude']}"
+        else:
+            q = "Seoul"  # 위치 정보 없을 때 기본값
+    else:
+        q = mapping.get(choice, "Seoul")
+
 
 if q:
     res = requests.get(BASE_URL, params={"key": API_KEY, "q": q, "days": 1, "lang": "ko" if sel_lang == "한국어" else "en"}).json()
